@@ -1,0 +1,18 @@
+Mechos - Design
+---------------
+
+UI states: normal, scrolling, sliding
+
+pressed: true/false
+pressed time
+
+panels: menus, context, player
+
+item: name, type, url
+
+main loop:
+
+switch(state):
+	normal:
+		if(pressed
+
