@@ -28,8 +28,11 @@ import gobject
 from control import control
 from menu import menu
 
-gobject.threads_init()
-gtk.gdk.threads_init()
+#gobject.thread_init()
+# 3import glib
+#glib.thread_init()
+
+#gtk.gdk.threads_init()
 
 class Main(object):
 
@@ -88,9 +91,7 @@ class Main(object):
         main_box.show()
         window.show()
         try:
-            gtk.gdk.threads_enter()
             gtk.main()
-            gtk.gdk.threads_leave()
         except:
             sys.exit()
 
