@@ -20,6 +20,7 @@ import gtk
 from Queue import Queue
 import threading
 import time
+import gobject
 
 # states
 IDLE = 0
@@ -33,20 +34,15 @@ step=0
 delay=1
 
 # tuning
-motion_threshold=5.0
-motion_limit=50
-click_delay=0.14
-slide=[20,0.01]
+motion_threshold_x=15.0
+motion_threshold_y=5.0
+motion_limit=100
+click_delay=0.15
+slide=[40,0.01]
 speed_samples=3
-scroll_steps=100
-scroll_delay=20
-accel=500
-
-def te():
-    gtk.gdk.threads_enter()
-    
-def tl():
-    gtk.gdk.threads_leave()
+scroll_steps=50
+scroll_delay=80
+accel=100
 
 class View(object):
 
@@ -68,6 +64,7 @@ class View(object):
     last_x = 0
     last_y = 0
     last_time = 0
+    last_move_time = 0
     delta_x = 0
     delta_y = 0
     delta_t = 0
@@ -75,11 +72,9 @@ class View(object):
     sample_count = 0
 
     def press(self, widget, event):
-        auto = self.auto
-        if self.state == SCROLLING:
-            self.auto_queue.put([])
-        if auto:
-            return True
+        if self.auto:
+            self.auto = False
+            return True            
         self.sample_count = 0
         x, y = self.slide_box.get_pointer()
         self.press_x = self.last_x = x
@@ -89,9 +84,9 @@ class View(object):
         time.sleep(click_delay)
         
         x, y = self.slide_box.get_pointer()
-        if abs(x-self.press_x) > motion_threshold: 
+        if abs(x-self.press_x) > motion_threshold_x: 
             self.state = SLIDING
-        elif abs(y-self.press_y) > motion_threshold:
+        elif abs(y-self.press_y) > motion_threshold_y:
             self.state = SCROLLING        
         else:
             self.state = CLICKED
@@ -105,22 +100,31 @@ class View(object):
         if self.state == SCROLLING:
             #print str(self.delta_t) + " " + str(self.delta_x / self.delta_t) + " " + str(self.delta_y / self.delta_t)
             if event.time < self.last_time + motion_limit:
-                self.auto_queue.put(self.auto_scroll(widget))        
+                self.auto_scroll(widget) 
         if self.state == SLIDING:
             #print str(self.delta_t) + " " + str(self.delta_x / self.delta_t) + " " + str(self.delta_y / self.delta_t)
-            self.auto_queue.put(self.auto_slide(widget, 0))
+            self.auto_slide(widget, 0)
         self.state = IDLE
 
     def row_clicked(self, widget, event):
         if self.get_level() < self.depth-1:
             self.auto_queue.put(self.auto_slide(widget, +1))
 
-    def motion(self, widget, event): 
+    def motion(self, widget, event):
+        if self.auto:
+            return 
         x, y = self.slide_box.get_pointer()                                        
         if self.state == SCROLLING or self.state == SLIDING:
-            self.delta_x = x - self.last_x
-            self.delta_y = y - self.last_y
-            self.delta_t = float(event.time - self.last_time)
+            delta_x = x - self.last_x
+            delta_y = y - self.last_y
+            delta_t = float(event.time - self.last_time)
+            
+            if abs(delta_x) > abs(self.delta_x):
+                self.delta_x = delta_x
+                self.delta_t = delta_t
+            if abs(delta_y) > abs(self.delta_y):
+                self.delta_y = delta_y
+                self.delta_t = delta_t
             
             self.sample_count += 1
             if self.sample_count > speed_samples:
@@ -129,7 +133,9 @@ class View(object):
                 self.last_y = y
                 self.last_time = event.time        
         if self.state == SCROLLING:
-            self.scroll(widget, y)        
+            if event.time > self.last_move_time + 100:
+                self.scroll(widget, y)        
+                self.last_move_time = event.time
         if self.state == SLIDING:
             self.slide(widget, x)
         return True
@@ -145,30 +151,38 @@ class View(object):
 
     def auto_scroll(self, widget):
         self.auto = True
-        te()
         adj = widget.get_vadjustment()
         val = adj.get_value()
-        tl()
         delay = scroll_delay
         if self.delta_t == 0:
             self.delta_t = 1.0
-        delta_y = (delay*self.delta_y)/self.delta_t
+        delta_y = 5*(delay*self.delta_y)/self.delta_t
+
+        self.delta_y=0
         if delta_y == 0:
+            self.auto=False
             return
         sign = delta_y / abs(delta_y)
         delta_t = delay / 1000.0
         dt2 = delta_t * delta_t
         for i in range(scroll_steps):
             dy = delta_y - sign*dt2*accel*i  
-            #print dy
-            val = val - dy 
-            te()            
+            val = val - dy          
+            if val < adj.lower:
+                adj.set_value(val)
+                break
+            if val > adj.upper:
+                adj.set_value(upper)
+                break
             adj.set_value(val)
-            tl()
-            if abs(dy) < 2:
+            if dy*sign < 2:
                 break
             time.sleep(delta_t)
-            yield            
+            while gtk.events_pending():
+                gtk.main_iteration(False)
+            if not self.auto:
+                break
+
         self.auto = False
 
     def auto_slide(self, widget, offset):
@@ -176,21 +190,23 @@ class View(object):
         adj = self.slide_adj
         current = adj.get_value()
         dest = (self.get_level(current)+offset)*self.width
-        sign = 1 if current < dest else -1
+        if current < dest:
+            sign = 1 
+        else:
+            sign = -1
         
         for i in range(int(sign*current), int(sign*dest), slide[step]):
             time.sleep(slide[delay])
-            te()
             adj.set_value(sign*i)
-            tl()
-            yield
+            while gtk.events_pending():
+                gtk.main_iteration(False)
         adj.set_value(dest)
         widget.get_selection().unselect_all()
         self.auto = False
 
-    def auto_thread(self):
-        while True:            
-            request = self.auto_queue.get()            
+    def auto_thread(self):         
+        request = self.auto_queue.get_nowait()            
+        if request:
             for i in request:
                 if not self.auto_queue.empty():
                     break
@@ -202,8 +218,8 @@ class View(object):
         
     def __init__(self, parent):
         self.logger.debug('init');
-        self.auto_thread = threading.Thread(target=self.auto_thread)
-        self.auto_thread.start()
+        #self.auto_thread = threading.Thread(target=self.auto_thread)
+        #self.auto_thread.start()
 
         (width, height) = parent.get_size_request()
         self.width = width
