@@ -36,7 +36,7 @@ delay=1
 motion_threshold=5.0
 motion_limit=50
 click_delay=0.14
-slide=[15,0.02]
+slide=[20,0.01]
 speed_samples=3
 scroll_steps=100
 scroll_delay=20
@@ -108,12 +108,12 @@ class View(object):
                 self.auto_queue.put(self.auto_scroll(widget))        
         if self.state == SLIDING:
             #print str(self.delta_t) + " " + str(self.delta_x / self.delta_t) + " " + str(self.delta_y / self.delta_t)
-            self.auto_queue.put(self.auto_slide(0))
+            self.auto_queue.put(self.auto_slide(widget, 0))
         self.state = IDLE
 
     def row_clicked(self, widget, event):
         if self.get_level() < self.depth-1:
-            self.auto_queue.put(self.auto_slide(+1))
+            self.auto_queue.put(self.auto_slide(widget, +1))
 
     def motion(self, widget, event): 
         x, y = self.slide_box.get_pointer()                                        
@@ -171,7 +171,7 @@ class View(object):
             yield            
         self.auto = False
 
-    def auto_slide(self, offset):
+    def auto_slide(self, widget, offset):
         self.auto = True
         adj = self.slide_adj
         current = adj.get_value()
@@ -184,7 +184,8 @@ class View(object):
             adj.set_value(sign*i)
             tl()
             yield
-        adj.set_value(sign*dest)
+        adj.set_value(dest)
+        widget.get_selection().unselect_all()
         self.auto = False
 
     def auto_thread(self):
@@ -194,7 +195,9 @@ class View(object):
                 if not self.auto_queue.empty():
                     break
         
-    def get_level(self, pos=self.slide_adj.get_value()):
+    def get_level(self, pos=None):
+        if pos == None:
+            pos = self.slide_adj.get_value()
         return round(pos/self.width)
         
     def __init__(self, parent):
@@ -294,7 +297,7 @@ class View(object):
             item_box.add(item_list)
             
             self.level_boxes.append(level_box)
+            item_list.get_selection().unselect_all()
+
             
         slide_box.show()
-
-        #self.slide_adj.set_value(width/2)
