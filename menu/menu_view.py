@@ -39,10 +39,12 @@ motion_threshold_y=5.0
 motion_limit=100
 click_delay=0.15
 slide=[40,0.01]
-speed_samples=3
+speed_samples=1
 scroll_steps=50
 scroll_delay=80
 accel=100
+ratio=1
+max_speed=0.8
 
 class View(object):
 
@@ -65,16 +67,15 @@ class View(object):
     last_y = 0
     last_time = 0
     last_move_time = 0
-    delta_x = 0
-    delta_y = 0
-    delta_t = 0
+    speed_x = 0
+    speed_y = 0
     auto_queue = Queue()
-    sample_count = 0
 
     def press(self, widget, event):
+        interrupt = False
         if self.auto:
+            interrupt = True
             self.auto = False
-            return True            
         self.sample_count = 0
         x, y = self.slide_box.get_pointer()
         self.press_x = self.last_x = x
@@ -90,7 +91,10 @@ class View(object):
             self.state = SCROLLING        
         else:
             self.state = CLICKED
-            return
+            if interrupt:            
+                return True
+            else:
+                return
                 
         self.base_scroll = widget.get_vadjustment().get_value()
         self.base_slide = self.slide_adj.get_value()
@@ -112,6 +116,7 @@ class View(object):
 
     def motion(self, widget, event):
         if self.auto:
+            self.speed_y = 0
             return 
         x, y = self.slide_box.get_pointer()                                        
         if self.state == SCROLLING or self.state == SLIDING:
@@ -119,19 +124,17 @@ class View(object):
             delta_y = y - self.last_y
             delta_t = float(event.time - self.last_time)
             
-            if abs(delta_x) > abs(self.delta_x):
-                self.delta_x = delta_x
-                self.delta_t = delta_t
-            if abs(delta_y) > abs(self.delta_y):
-                self.delta_y = delta_y
-                self.delta_t = delta_t
+            if delta_t != 0 and delta_y != 0:
+                self.speed_x = delta_x / delta_t
+                speed_y = delta_y / delta_t
             
-            self.sample_count += 1
-            if self.sample_count > speed_samples:
-                self.sample_count = 0
-                self.last_x = x
-                self.last_y = y
-                self.last_time = event.time        
+                #if abs(speed_y) > abs(self.speed_y) or sign(speed_y) != sign(self.speed_y)
+                self.speed_y = sign(speed_y)*min(abs(speed_y), max_speed)
+                print self.speed_y
+            
+            self.last_x = x
+            self.last_y = y
+            self.last_time = event.time        
         if self.state == SCROLLING:
             if event.time > self.last_move_time + 100:
                 self.scroll(widget, y)        
@@ -151,17 +154,17 @@ class View(object):
 
     def auto_scroll(self, widget):
         self.auto = True
+        (width, height) = widget.get_size_request()
         adj = widget.get_vadjustment()
         val = adj.get_value()
         delay = scroll_delay
-        if self.delta_t == 0:
-            self.delta_t = 1.0
-        delta_y = 5*(delay*self.delta_y)/self.delta_t
 
-        self.delta_y=0
-        if delta_y == 0:
+        if self.speed_y == 0:
             self.auto=False
             return
+
+        delta_y = delay*self.speed_y
+
         sign = delta_y / abs(delta_y)
         delta_t = delay / 1000.0
         dt2 = delta_t * delta_t
@@ -169,10 +172,10 @@ class View(object):
             dy = delta_y - sign*dt2*accel*i  
             val = val - dy          
             if val < adj.lower:
-                adj.set_value(val)
+                adj.set_value(adj.lower)
                 break
-            if val > adj.upper:
-                adj.set_value(upper)
+            if val > adj.upper-height:
+                adj.set_value(adj.upper-height)
                 break
             adj.set_value(val)
             if dy*sign < 2:
@@ -186,6 +189,7 @@ class View(object):
         self.auto = False
 
     def auto_slide(self, widget, offset):
+        widget.get_selection().unselect_all()        
         self.auto = True
         adj = self.slide_adj
         current = adj.get_value()
@@ -201,7 +205,6 @@ class View(object):
             while gtk.events_pending():
                 gtk.main_iteration(False)
         adj.set_value(dest)
-        widget.get_selection().unselect_all()
         self.auto = False
 
     def auto_thread(self):         
@@ -317,3 +320,10 @@ class View(object):
 
             
         slide_box.show()
+
+def sign(val):
+    if val < 0:
+        return -1
+    if val > 0:
+        return 1
+    return 0
