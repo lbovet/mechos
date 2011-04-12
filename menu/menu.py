@@ -22,8 +22,29 @@ import threading
 
 class Menu(object):
 
+    nodes = { "Music": None, "Radio" : { "Lolo": { "Couleur3" : None}, "Sarah": { "RSR La 1ere":None, "Soma FM": None}}, "Photos": { "Turquie": None, "Grece":None }}
+
     logger = logging.getLogger('main')
  
     def __init__(self, control, parent):
         self.view = View(parent)
-                    
+        self.view.set_node_provider(self.get_node)
+        
+        import pickle
+        import pickle
+        f = open("music.pickle", "r")
+        m = pickle.load(f)
+        self.nodes['Music'] = m
+        
+    def get_node(self, path=[]):
+        cursor = self.nodes
+        for p in path:
+            if type(cursor) == dict:
+                if p < len(cursor.keys()):
+                    cursor = cursor[cursor.keys()[p]]
+                else:
+                    return cursor.keys()
+            else:
+                return None
+        if cursor and len(cursor) > 0:
+            return cursor.keys()

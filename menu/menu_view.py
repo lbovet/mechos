@@ -51,9 +51,9 @@ class View(object):
     logger = logging.getLogger("menu.view")
 
     depth = 5
-    header_line_height = 16
+    header_line_height = 0
 
-    level_boxes = []
+    item_lists = []
     
     state = IDLE 
     auto = False
@@ -70,8 +70,11 @@ class View(object):
     speed_x = 0
     speed_y = 0
     auto_queue = Queue()
+    node_provider = None
+    current_path = []
 
     def press(self, widget, event):
+        self.clear_selection()   
         interrupt = False
         if self.auto:
             interrupt = True
@@ -94,6 +97,9 @@ class View(object):
             if interrupt:            
                 return True
             else:
+                path = widget.get_path_at_pos(int(event.x), int(event.y))
+                if path:
+                    widget.set_cursor(path[0])                
                 return
                 
         self.base_scroll = widget.get_vadjustment().get_value()
@@ -102,17 +108,30 @@ class View(object):
 
     def release(self, widget, event):
         if self.state == SCROLLING:
-            #print str(self.delta_t) + " " + str(self.delta_x / self.delta_t) + " " + str(self.delta_y / self.delta_t)
             if event.time < self.last_time + motion_limit:
                 self.auto_scroll(widget) 
         if self.state == SLIDING:
-            #print str(self.delta_t) + " " + str(self.delta_x / self.delta_t) + " " + str(self.delta_y / self.delta_t)
             self.auto_slide(widget, 0)
+            self.update_level()
         self.state = IDLE
 
     def row_clicked(self, widget, event):
-        if self.get_level() < self.depth-1:
-            self.auto_queue.put(self.auto_slide(widget, +1))
+        if not widget.get_path_at_pos(int(event.x), int(event.y)):
+            return
+        level = self.get_level() 
+        if level < self.depth-1:
+            if widget.get_cursor():                
+                self.current_path.append(widget.get_cursor()[0][0])
+                print self.current_path                
+                list = self.node_provider(self.current_path)
+                print list
+                if list:
+                    item_list_store = gtk.ListStore(str)
+                    for i in list:
+                        item_list_store.append([i])
+                    self.item_lists[level+1].set_model(item_list_store)            
+                    self.auto_queue.put(self.auto_slide(widget, +1))
+            self.update_level()
 
     def motion(self, widget, event):
         if self.auto:
@@ -127,10 +146,7 @@ class View(object):
             if delta_t != 0 and delta_y != 0:
                 self.speed_x = delta_x / delta_t
                 speed_y = delta_y / delta_t
-            
-                #if abs(speed_y) > abs(self.speed_y) or sign(speed_y) != sign(self.speed_y)
                 self.speed_y = sign(speed_y)*min(abs(speed_y), max_speed)
-                print self.speed_y
             
             self.last_x = x
             self.last_y = y
@@ -188,8 +204,7 @@ class View(object):
 
         self.auto = False
 
-    def auto_slide(self, widget, offset):
-        widget.get_selection().unselect_all()        
+    def auto_slide(self, widget, offset):    
         self.auto = True
         adj = self.slide_adj
         current = adj.get_value()
@@ -206,6 +221,7 @@ class View(object):
                 gtk.main_iteration(False)
         adj.set_value(dest)
         self.auto = False
+        self.clear_selection()   
 
     def auto_thread(self):         
         request = self.auto_queue.get_nowait()            
@@ -217,7 +233,15 @@ class View(object):
     def get_level(self, pos=None):
         if pos == None:
             pos = self.slide_adj.get_value()
-        return round(pos/self.width)
+        return int(round(pos/self.width))
+        
+    def update_level(self):
+        self.current_path = self.current_path[:self.get_level()]
+        print self.current_path
+        
+    def clear_selection(self):
+        for i in self.item_lists:
+            i.get_selection().unselect_all()
         
     def __init__(self, parent):
         self.logger.debug('init');
@@ -251,15 +275,13 @@ class View(object):
             item_box_height = height - header_height
             item_box.set_size_request(width, item_box_height)
             item_box.show()
-            level_box.put(item_box, 0, header_height)
-         
-            item_list_store = gtk.ListStore(str)
+            level_box.put(item_box, 0, header_height)         
             
             item_list = gtk.TreeView()
             item_list_column = gtk.TreeViewColumn()
             cell = gtk.CellRendererText()
             cell.set_property('height', 32)
-            cell.set_property('size-points', 14)
+            cell.set_property('size-points', 12)
             
             item_list_column.pack_start(cell, True)
             item_list_column.add_attribute(cell, 'text', 0)
@@ -277,49 +299,21 @@ class View(object):
             event_box = gtk.EventBox()
             
             event_box.set_size_request(width, item_box_height)
-            
-            item_list.set_model(item_list_store)
-            item_list_store.append(['hello'])
-            item_list_store.append(['world'])
-            item_list_store.append(['config.py'])
-            item_list_store.append(['customize.py'])
-            item_list_store.append(['database.py'])
-            item_list_store.append(['dict.py'])
-            item_list_store.append(['formula'])
-            item_list_store.append(['gendoc'])
-            item_list_store.append(['generic'])
-            item_list_store.append(['__init__.py'])
-            item_list_store.append(['log.py'])
-            item_list_store.append(['maillog.py'])
-            item_list_store.append(['meteo.py'])
-            item_list_store.append(['setup.py'])
-            item_list_store.append(['storage'])
-            item_list_store.append(['storagecopy.py'])
-            item_list_store.append(['test'])
-            item_list_store.append(['units.py'])
-            item_list_store.append(['utils.py'])
-            item_list_store.append(['dict.py'])
-            item_list_store.append(['formula'])
-            item_list_store.append(['gendoc'])
-            item_list_store.append(['generic'])
-            item_list_store.append(['__init__.py'])
-            item_list_store.append(['log.py'])
-            item_list_store.append(['maillog.py'])
-            item_list_store.append(['meteo.py'])
-            item_list_store.append(['setup.py'])
-            item_list_store.append(['storage'])
-            item_list_store.append(['storagecopy.py'])
-            item_list_store.append(['test'])
-            item_list_store.append(['units.py'])
-            item_list_store.append(['utils.py'])
                                     
             item_box.add(item_list)
             
-            self.level_boxes.append(level_box)
-            item_list.get_selection().unselect_all()
-
+            self.item_lists.append(item_list)
             
         slide_box.show()
+
+    def set_node_provider(self, node_provider):        
+        self.node_provider = node_provider
+        item_list_store = gtk.ListStore(str)
+        for i in node_provider():
+            item_list_store.append([i])    
+        item_list = self.item_lists[0]
+        item_list.set_model(item_list_store)
+        self.clear_selection()
 
 def sign(val):
     if val < 0:

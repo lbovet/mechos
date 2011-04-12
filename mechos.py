@@ -28,12 +28,6 @@ import gobject
 from control import control
 from menu import menu
 
-#gobject.thread_init()
-# 3import glib
-#glib.thread_init()
-
-#gtk.gdk.threads_init()
-
 class Main(object):
 
     logger = logging.getLogger('main')
@@ -60,7 +54,8 @@ class Main(object):
         
         # Create window
         gtk.rc_parse('gtkrc')
-        window = gtk.Window(gtk.WINDOW_POPUP)
+        gtk.rc_add_default_file('gtkrc')
+        window = gtk.Window()
         
         width = 240
         height = 320
@@ -73,7 +68,7 @@ class Main(object):
         
         # Create application components
         
-        control_height = 48
+        control_height = 0
         
         control_box = gtk.Fixed()
         control_box.set_size_request(width, control_height)
@@ -90,13 +85,15 @@ class Main(object):
         # Main loop
         main_box.show()
         window.show()
+        if window.get_screen().get_width() < 400:
+            window.fullscreen()
         try:
             gtk.main()
         except:
             sys.exit()
 
-    def destroy(self):
+    def destroy(self, event):
         self.logger.debug("Close requested")
-        gtk.main.quit()
+        sys.exit()
 
 Main()
