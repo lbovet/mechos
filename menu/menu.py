@@ -63,7 +63,6 @@ class Menu(object):
                 "Freestyler" : None,
                 "All Night Long" : None,
                 "I'm A Slave 4 U (Album)" : None,
-<<<<<<< HEAD
                 "I'm A Slave 4 U (Hotmix)" : None,
                 "Bounce" : None,
                 "Missing You" : None,
@@ -83,9 +82,7 @@ class Menu(object):
                 "Ooh" : None,
                 "Ring, Ring (Ha Ha Hey)" : None,
                 "Dance With Me" : None}
-=======
                 "I'm A Slave 4 U (Hotmix)" : None}
->>>>>>> bf0a642f1aaf5876b4c4bbf5ae719c4a7116b980
         self.nodes['Music'] = m
         
     def get_node(self, path=[]):
