@@ -29,11 +29,41 @@ class Menu(object):
     def __init__(self, control, parent):
         self.view = View(parent)
         self.view.set_node_provider(self.get_node)
-        
-        import pickle
-        import pickle
-        f = open("music.pickle", "r")
-        m = pickle.load(f)
+                
+        #import pickle
+        #f = open("music.pickle", "r")
+        #m = pickle.load(f)
+        m = {"Playas Gon' Play" : None,
+                "Where My Girls At" : None,
+                "Are You Feelin' Me" : None,
+                "Are You That Somebody" : None,
+                "I Don't Wanna" : None,
+                "More Than A Woman" : None,
+                "Try Again" : None,
+                "Try Again Remix" : None,
+                "Try Again (No No No Remix)" : None,
+                "Come Back In One Piece" : None,
+                "Brotha Remix (Angie Stone & Eve)" : None,
+                "I Paid My Dues" : None,
+                "I'm Outta Love" : None,
+                "All Or Nothing" : None,
+                "Shining Star" : None,
+                "Who Let The Dogs Out ?" : None,
+                "Crazy In Love" : None,
+                "Naughty Girl" : None,
+                "Trackin'" : None,
+                "Request Line" : None,
+                "Weekends" : None,
+                "Where Is The Love" : None,
+                "Come On" : None,
+                "All Rise" : None,
+                "Hit Em Up Style" : None,
+                "Hit Em Up Style (remix)" : None,
+                "Daddy Cool" : None,
+                "Freestyler" : None,
+                "All Night Long" : None,
+                "I'm A Slave 4 U (Album)" : None,
+                "I'm A Slave 4 U (Hotmix)" : None}
         self.nodes['Music'] = m
         
     def get_node(self, path=[]):
