@@ -37,15 +37,17 @@ delay=1
 motion_threshold_x=15.0
 motion_threshold_y=5.0
 motion_limit=100
-click_delay=0.15
-slide=[40,0.01]
+click_steps=15
+click_delay=10
+slide=[42,0.012]
+slide_ratio=1.5
 speed_samples=1
-scroll_steps=50
-scroll_delay=80
+scroll_steps=1000
+scroll_delay=45
 motion_delay=20
-accel=100
+accel=120
 ratio=1
-max_speed=0.8
+max_speed=2
 
 class View(object):
 
@@ -86,14 +88,17 @@ class View(object):
         self.press_y = self.last_y = y
         self.state = CLICKING
         
-        time.sleep(click_delay)
-        
-        x, y = self.slide_box.get_pointer()
-        if abs(x-self.press_x) > motion_threshold_x: 
-            self.state = SLIDING
-        elif abs(y-self.press_y) > motion_threshold_y:
-            self.state = SCROLLING        
-        else:
+        for i in range(click_steps):
+            time.sleep(click_delay/1000.0)
+            x, y = self.slide_box.get_pointer()
+            if abs(x-self.press_x) > motion_threshold_x: 
+                self.state = SLIDING
+                break
+            elif abs(y-self.press_y) > motion_threshold_y:
+                self.state = SCROLLING        
+                break
+                
+        if self.state == CLICKING:
             self.state = CLICKED
             if interrupt:            
                 return True
@@ -172,7 +177,7 @@ class View(object):
         
     def slide(self, widget, x):
         adj = self.slide_adj
-        adj.set_value( min(self.base_slide+(self.press_x-x), self.base_slide))
+        adj.set_value( min(self.base_slide-min(x*slide_ratio-self.press_x, self.width), self.base_slide))
 
     def auto_scroll(self, widget):
         self.auto = True
@@ -283,7 +288,7 @@ class View(object):
             item_list = gtk.TreeView()
             item_list_column = gtk.TreeViewColumn()
             cell = gtk.CellRendererText()
-            cell.set_property('height', 32)
+            cell.set_property('height', 24)
             cell.set_property('size-points', 12)
             
             item_list_column.pack_start(cell, True)

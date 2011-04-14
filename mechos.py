@@ -54,7 +54,37 @@ class Main(object):
         
         # Create window
         gtk.rc_parse('gtkrc')
-        gtk.rc_add_default_file('gtkrc')
+        #gtk.rc_add_default_file('gtkrc')
+        #gtk.rc_parse_string(
+        #"""
+            #style "mine" {
+  #fg[NORMAL]      = "#ffffff"
+  #text[NORMAL]      = "#ffffff"
+  #bg[NORMAL]      = "#000000" 
+  #base[NORMAL]    = "#000000"
+
+  #fg[INSENSITIVE]      = "#999999"
+  #bg[INSENSITIVE]      = "#333333"
+  #text[INSENSITIVE]      = "#999999"
+  #base[INSENSITIVE]      = "#333333"
+
+  #fg[PRELIGHT]    = "#ffffff"
+  #text[PRELIGHT]    = "#ffffff"
+  #bg[PRELIGHT]    = "#000000"
+  #base[PRELIGHT]    = "#000000"
+
+  #fg[ACTIVE]      = "#000000"
+  #text[ACTIVE]      = "#000000"
+  #bg[ACTIVE]      = "#666666"
+  #base[ACTIVE]      = "#666666"
+
+  #fg[SELECTED]    = "#000000"
+  #text[SELECTED]    = "#000000"
+  #bg[SELECTED]    = "#ffff22"
+  #base[SELECTED]    = "#ffffcc"
+            #}
+            #widget "*" style "mine"
+         #""")
         #window = gtk.Window(gtk.WINDOW_POPUP)
         window = gtk.Window()
         

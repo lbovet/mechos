@@ -9,7 +9,7 @@
 #Note: we just use the LargePrint icons for now, they will be scaled
 #to the correct size
 
-style "default"   
+style "mine"   
 { 
   
   fg[NORMAL]      = "#ffffff"
@@ -22,20 +22,20 @@ style "default"
   text[INSENSITIVE]      = "#999999"
   base[INSENSITIVE]      = "#333333"
 
-  fg[PRELIGHT]    = "#ffffff"
-  text[PRELIGHT]    = "#ffffff"
+  fg[PRELIGHT]    = "#ffff22"
+  text[PRELIGHT]    = "#ffff22"
   bg[PRELIGHT]    = "#000000"
   base[PRELIGHT]    = "#000000"
 
   fg[ACTIVE]      = "#000000"
   text[ACTIVE]      = "#000000"
-  bg[ACTIVE]      = "#666666"
-  base[ACTIVE]      = "#666666"
+  bg[ACTIVE]      = "#ffff22"
+  base[ACTIVE]      = "#ffff22"
 
   fg[SELECTED]    = "#000000"
   text[SELECTED]    = "#000000"
   bg[SELECTED]    = "#ffff22"
-  base[SELECTED]    = "#ffffcc"
+  base[SELECTED]    = "#ffff22"
 }
 
-class "*" style "default"
+class "*" style "mine"
