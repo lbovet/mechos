@@ -55,7 +55,7 @@ class Main(object):
         # Create window
         gtk.rc_parse('gtkrc')
         gtk.rc_add_default_file('gtkrc')
-        window = gtk.Window()
+        window = gtk.Window(gtk.WINDOW_POPUP)
         
         width = 240
         height = 320
@@ -85,6 +85,7 @@ class Main(object):
         # Main loop
         main_box.show()
         window.show()
+
         if window.get_screen().get_width() < 400:
             window.fullscreen()
         try:

@@ -42,6 +42,7 @@ slide=[40,0.01]
 speed_samples=1
 scroll_steps=50
 scroll_delay=80
+motion_delay=20
 accel=100
 ratio=1
 max_speed=0.8
@@ -104,6 +105,8 @@ class View(object):
                 
         self.base_scroll = widget.get_vadjustment().get_value()
         self.base_slide = self.slide_adj.get_value()
+        
+        self.motion(widget)
         return True  
 
     def release(self, widget, event):
@@ -122,9 +125,7 @@ class View(object):
         if level < self.depth-1:
             if widget.get_cursor():                
                 self.current_path.append(widget.get_cursor()[0][0])
-                print self.current_path                
                 list = self.node_provider(self.current_path)
-                print list
                 if list:
                     item_list_store = gtk.ListStore(str)
                     for i in list:
@@ -133,31 +134,36 @@ class View(object):
                     self.auto_queue.put(self.auto_slide(widget, +1))
             self.update_level()
 
-    def motion(self, widget, event):
-        if self.auto:
-            self.speed_y = 0
-            return 
-        x, y = self.slide_box.get_pointer()                                        
-        if self.state == SCROLLING or self.state == SLIDING:
-            delta_x = x - self.last_x
-            delta_y = y - self.last_y
-            delta_t = float(event.time - self.last_time)
-            
-            if delta_t != 0 and delta_y != 0:
-                self.speed_x = delta_x / delta_t
-                speed_y = delta_y / delta_t
-                self.speed_y = sign(speed_y)*min(abs(speed_y), max_speed)
-            
-            self.last_x = x
-            self.last_y = y
-            self.last_time = event.time        
-        if self.state == SCROLLING:
-            if event.time > self.last_move_time + 100:
-                self.scroll(widget, y)        
-                self.last_move_time = event.time
-        if self.state == SLIDING:
-            self.slide(widget, x)
-        return True
+    def motion(self, widget):
+        while self.state != IDLE:
+            while gtk.events_pending():
+                gtk.main_iteration(False)
+
+            t = time.time()*1000
+            if self.auto:
+                self.speed_y = 0
+                return 
+            x, y = self.slide_box.get_pointer()                                        
+            if self.state == SCROLLING or self.state == SLIDING:
+                delta_x = x - self.last_x
+                delta_y = y - self.last_y
+                delta_t = float(t - self.last_time)
+                
+                if delta_t != 0 and delta_y != 0:
+                    self.speed_x = delta_x / delta_t
+                    speed_y = delta_y / delta_t
+                    self.speed_y = sign(speed_y)*min(abs(speed_y), max_speed)
+                
+                self.last_x = x
+                self.last_y = y
+                self.last_time = t        
+            if self.state == SCROLLING:
+                if t > self.last_move_time + 100:
+                    self.scroll(widget, y)        
+                    self.last_move_time = t
+            if self.state == SLIDING:
+                self.slide(widget, x)
+            time.sleep(motion_delay/1000.0)
         
     def scroll(self, widget, y):    
         adj = widget.get_vadjustment()
@@ -237,7 +243,6 @@ class View(object):
         
     def update_level(self):
         self.current_path = self.current_path[:self.get_level()]
-        print self.current_path
         
     def clear_selection(self):
         for i in self.item_lists:
@@ -245,8 +250,6 @@ class View(object):
         
     def __init__(self, parent):
         self.logger.debug('init');
-        #self.auto_thread = threading.Thread(target=self.auto_thread)
-        #self.auto_thread.start()
 
         (width, height) = parent.get_size_request()
         self.width = width
@@ -287,13 +290,12 @@ class View(object):
             item_list_column.add_attribute(cell, 'text', 0)
             
             item_list.append_column(item_list_column)
-
+            item_list.set_events(gtk.gdk.BUTTON_PRESS_MASK)
             item_list.set_size_request(width, item_box_height)
             item_list.set_headers_visible(False)
             item_list.connect("button_press_event", self.press)
             item_list.connect("button_press_event", self.row_clicked)
             item_list.connect("button_release_event", self.release)
-            item_list.connect("motion_notify_event", self.motion)
             item_list.show()
 
             event_box = gtk.EventBox()
